@@ -20,7 +20,7 @@ class Config {
   
   static TOKEN_PRIOR_EXPSEC= process.env.TOKEN_PRIOR_EXPSEC;
   
-  static TOKEN_EXPIRY_SEC = process.env.TOKEN_EXPIRY_SEC;
+  static TOKEN_EXPIRY_MILLISEC = process.env.TOKEN_EXPIRY_MILLISEC;
   
   static SMPT_CONFIG = {
     host: process.env.SMTP_HOST,

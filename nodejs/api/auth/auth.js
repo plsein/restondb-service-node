@@ -2,7 +2,7 @@
  * Imports
  */
 const jwt = require("jsonwebtoken");
-const { Utils } = require('../utils/utils');
+const { CommonUtils } = require('../utils/common_utils');
 const { errorHandler } = require('../middlewares/middleware');
 const axios = require('axios').default;
 const { Config } = require('../configs/config');
@@ -17,13 +17,13 @@ class Auth {
   /**
    * Auth token generator
   */
-  static #authToken = function(key, secret) {
+  static #authToken = (key, secret) => {
     if(key === Config['AUTH_KEY'] && secret === Config['AUTH_SECRET']) {
       return {
         "token": jwt.sign(
           {role: "service", user_id: 0},  // payload
           Config['JWT_AUTH_SECRET'],
-          {algorithm: "HS256", expiresIn: Config['TOKEN_EXPIRY_SEC']}  // Seconds
+          {algorithm: "HS256", expiresIn: Config['TOKEN_EXPIRY_MILLISEC']}  // Milliseconds
         )
       };
     } else {
@@ -54,12 +54,11 @@ class Auth {
    * @param {*} next callback
    * @returns object
    */
-  static getToken = function(req, res, next) {
-    console.log(req.body);
+  static getToken = (req, res, next) => {
     let key = req.body.key? req.body.key: '';
     let secret = req.body.secret? req.body.secret: '';
     try {
-      return Utils.sendResponse(res, Auth.#authToken(key, secret), 200, {'status':'ok'}, true, true);
+      return CommonUtils.sendResponse(res, Auth.#authToken(key, secret), 200, {'status':'ok'}, true, true);
     } catch(err) {
       err['status'] = 401;
       errorHandler(err, req, res, next);
@@ -82,7 +81,7 @@ class Auth {
         }
       }
     } catch (err) {
-      Utils.appLog('Error: ', err);
+      CommonUtils.appLog('Error: ', err);
     }
     Auth.#serviceToken = await Auth.#newServiceToken();
     return await Auth.#serviceToken;

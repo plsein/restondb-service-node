@@ -1,10 +1,10 @@
 const { GraphOps } = require('../graph/graphops');
 const { RestOps } = require("../rest/restops");
 const { Const } = require('../configs/const');
-const { Utils } = require('../utils/utils');
+const { CommonUtils } = require('../utils/common_utils');
 
-class Service {
-  
+class CommonService {
+
   /**
    * Select Data API
    * @param {*} req request object
@@ -15,7 +15,7 @@ class Service {
   static selectDataAPI = async (req, res, next) => {
     return await RestOps.restApi(req, 'select');
   };
-  
+
   /**
    * Add Data API
    * @param {*} req request object
@@ -26,7 +26,7 @@ class Service {
   static addDataAPI = async (req, res, next) => {
     return await RestOps.restApi(req, 'add');
   };
-  
+
   /**
    * Edit Data API
    * @param {*} req request object
@@ -37,7 +37,7 @@ class Service {
   static editDataAPI = async (req, res, next) => {
     return await RestOps.restApi(req, 'edit');
   };
-  
+
   /**
    * Delete Data API
    * @param {*} req request object
@@ -48,18 +48,18 @@ class Service {
   static deleteDataAPI = async (req, res, next) => {
     return await RestOps.restApi(req, 'remove');
   };
-  
+
   static getUploadFile = async (req, res, next) => {
     // some extra processing here if required like save file path to db
-    return Utils.sendResponse(res, { data: {}, message: "File uploaded successfully" });
+    return CommonUtils.sendResponse(res, [], 200, {"msg": "File uploaded successfully"});
   };
 
   static getGraphqlSchema = async (req, res, next) => {
     const gqlQuery = Const.GRAPHQL_SCHEMA_INTROSPECT_GQL_QUERY;
     const response = await GraphOps.graphqlQuery(gqlQuery);
-    return Utils.sendResponse(res, {data: response});
+    return CommonUtils.sendResponse(res, {"data": response});
   };
 
 }
 
-exports.Service = Service;
+exports.CommonService = CommonService;
