@@ -15,7 +15,7 @@ const { Auth } = require('./auth/auth');
 const { appLog, reqLogger } = require('./configs/logger');
 const { errorHandler, initMiddleware } = require('./middlewares/middleware');
 
-(async() => {
+(async () => {
 
   /**
    * Get token to access db service
@@ -36,12 +36,12 @@ const { errorHandler, initMiddleware } = require('./middlewares/middleware');
       });
     },
     supergraphSdl: new IntrospectAndCompose({
-      subgraphs: [{ name: 'graphql', url: Config['DB_SERVICE_URI']+'/graphql' }],
-      introspectionHeaders: { Authorization: `Bearer ${oauthToken}`}
+      subgraphs: [{ name: 'graphql', url: Config.DB_SERVICE_URI + '/graphql' }],
+      introspectionHeaders: { Authorization: `Bearer ${oauthToken}` }
     }),
   });
   const graphServer = new ApolloServer({ gateway: graphGateway });
-  
+
   /**
    * Start GraphQL Server
    */
@@ -61,45 +61,44 @@ const { errorHandler, initMiddleware } = require('./middlewares/middleware');
   }));
   /**
    * Proxy to db service
-  */
+   */
   app.use(
     '/',
-    createProxyMiddleware(Config['PROXY_ON_PATH']+'/**', {
-      target: Config['PROXY_TO_URI'],
+    createProxyMiddleware(Config.PROXY_ON_PATH + '/**', {
+      target: Config.PROXY_TO_URI,
       changeOrigin: true,
       pathRewrite: {
-        '^' + Config['PROXY_ON_PATH'] + '/' : '/',  // Removing proxy path from request
+        ['^' + Config.PROXY_ON_PATH + '/']: '/', // Removing proxy path from request
       },
-    }),
+    })
   );
-  app.use([initMiddleware, express.json({ extended: true })]);  // initMiddleware
+  app.use([initMiddleware, express.json({ extended: true })]); // initMiddleware
   // app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
-  app.use(
-    expressjwt({secret: Config['JWT_AUTH_SECRET'], algorithms: ["HS256"]})
-      .unless({ method: "OPTIONS", path: [
-        // { url: "/token", methods: ["GET", "POST"] },
-        "/token",
-        "/login",
-        "/forgot-password",
-        "/reset-password",
-        "/user-register",
-        "/token-validation",
-        "/graphiql",
-        "/graphql/stream",
-        Config['PROXY_ON_PATH'] + '/*'  // Comment this line if you want to enable jwt on proxy path
-      ]})
+  app.use(expressjwt({ secret: Config.JWT_AUTH_SECRET, algorithms: ["HS256"] }).unless({
+    method: "OPTIONS", path: [
+      // {url: "/token", methods: ["GET", "POST"]},
+      "/token",
+      "/login",
+      "/forgot-password",
+      "/user-register",
+      "/opt-validation",
+      "/graphiql",
+      "/graphql/stream",
+      Config.PROXY_ON_PATH + '/*' // Comment this line if you want to enable jwt on proxy path
+    ]})
   );
   app.use('/graphql', expressMiddleware(graphServer, {
     context: async ({ req }) => ({ key: '' })
   }));
   app.use(errorHandler);
   Routes.setRoutes(app);
-  
+
   /**
    * App Initialization
    */
   module.exports.handler = serverless(app);
-  appLog.info("Server starting on port: " + (Config['APP_PORT'] || 8000));
-  app.listen(Config['APP_PORT'] || 8000);
+  appLog.info("Server starting on port: " + (Config.APP_PORT || 8000));
+  app.listen(Config.APP_PORT || 8000);
 
 })();
+

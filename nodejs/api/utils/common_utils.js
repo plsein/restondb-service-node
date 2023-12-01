@@ -10,15 +10,17 @@ const { parse } = require("graphql");
 const { type } = require("os");
 const { gql } = require('@apollo/client');
 const { Config } = require("../configs/config");
+const { Const } = require('../configs/const');
+const { appLog } = require('../configs/logger');
 
-class Utils {
+class CommonUtils {
 
   /**
    * Determine whether the given `value` is an object.
    * @param value object
    * @returns boolean
    */
-  static isObject = function(value) {
+  static isObject = (value) => {
     return Object.prototype.toString.call(value) === '[object Object]';
   };
 
@@ -26,12 +28,19 @@ class Utils {
    * Read a file
    * @param filePath String file path
    */
-  static readFile = function(filePath) {
+  static readFile = (filePath) => {
     return fs.readFileSync(filePath, 'utf8');
   };
 
-  static makeJSONResponse = function(content, code=200, msg={"status":"ok"}) {
-    return {"code":code, "msg":msg, "data":content};
+  static getErrorDetails = (err) => {
+    let error = {};
+    error["status"] = (err.response?.status)? err.response.status : 500;
+    error["msg"] = (err.response?.data?.msg)? err.response.data.msg : Const['REQ_PROCESS_ERR_MSG'];
+    return error;
+  }
+
+  static makeJSONResponse = (content, code=200, msg={"msg":"Status Ok"}) => {
+    return {"code":code, "message":msg, "data": content};
   }
 
   /**
@@ -39,10 +48,10 @@ class Utils {
    * @param res response object
    * @param output output object
    */
-  static sendResponse = function(res, output, code=200, msg={"status":"ok"}, isJSON=true, buildJSON=false) {
+  static sendResponse = (res, output, code=200, msg={"msg":"Status Ok"}, isJSON=true, buildJSON=false) => {
     if(isJSON) {
       if (buildJSON) {
-        return res.json(Utils.makeJSONResponse(output, code, msg));
+        return res.json(CommonUtils.makeJSONResponse(output, code, msg));
       }
       return res.json(output);
     }
@@ -53,16 +62,17 @@ class Utils {
    * Write application Log
    * @param req request object
    */
-  static reqLog = function(req, msg) {
+  static reqLog = (req, msg) => {
     req.log.info(msg);
+    appLog.info(msg);
   };
 
   /**
    * Write application Log
    * @param req request object
    */
-  static stringOccurance = function(text) {
-    let regex = new RegExp("'", "gi");
+  static stringOccurance = (text) => {
+    let regex = /'/gi;
     let count = (text.match(regex) || []).length;
     return count;
   };
@@ -72,23 +82,23 @@ class Utils {
    * @param text string
    * return string
    */
-  static escapeString = function(text) {
+  static escapeString = (text) => {
     // Uncomment after proper testing
     // const regex_slash = {"search": /[\\]/g, "replace": "\\\\"};
     // Avoid sql comment
     // This will fail sql query if comment is not quoted and thus prevent sql injection
-    const regex_hyphen = {"search": new RegExp("--", 'g'), "replace": "- - "};
+    const regex_hyphen = {"search": /--/g, "replace": "- - "};
     // Yet another avoid sql comment
     // This will fail sql query if comment is not quoted and thus prevent sql injection
-    const regex_hyphen_ya = {"search": new RegExp("--", 'g'), "replace": "&minus;&minus;"};
+    const regex_hyphen_ya = {"search": /--/g, "replace": "&minus;&minus;"};
     // Avoid multiple sql statements at once
     // This will fail sql query if semicolon is not quoted and thus prevent sql injection
-    const regex_semicolon = {"search": new RegExp(";", 'g'), "replace": "&#59;"};
+    const regex_semicolon = {"search": /;/g, "replace": "&#59;"};
     let regex_list = [regex_semicolon, regex_hyphen, regex_hyphen_ya];  // regex_slash
     // Avoid odd occurances of quote
     // This will fail sql query if quote is not closed properly and thus prevent sql injection
-    if (Utils.stringOccurance(text) % 2 != 0) {
-      const regex_quote = {"search": new RegExp("'", 'g'), "replace": "''"};
+    if (CommonUtils.stringOccurance(text) % 2 != 0) {
+      const regex_quote = {"search": /'/g, "replace": "''"};
       regex_list.push(regex_quote);
     }
     // Replace bad characters
@@ -104,12 +114,12 @@ class Utils {
    */
   static fileUploader = multer({
     storage: multer.diskStorage({
-      destination: function (req, file, cb) {
+      destination: (req, file, cb) => {
         fs.mkdir(`uploads/${req.body.entity_type}//${req.body.entity_id}//${req.body.entity_field}//`, { recursive: true }, (error) => {
           if (error) {
             console.log(error);
           } else {
-            filenames = fs.readdirSync(
+            const filenames = fs.readdirSync(
               `uploads/${req.body.entity_type}/${req.body.entity_id}/${req.body.entity_field}`
             );
             filenames.forEach((instance) => {
@@ -126,7 +136,7 @@ class Utils {
           }
         });
       },
-      filename: function (req, file, cb) {
+      filename: (req, file, cb) => {
         const filename = `${req.body.entity_type}/${req.body.entity_id}/${req.body.entity_field}/${file.originalname}`;
         // user/{id}/profile/
         cb(null, file.originalname);
@@ -134,6 +144,27 @@ class Utils {
     }),
   }).single("file");
 
+  /**
+   * Escape string
+   * @param text string
+   * return string
+   */
+  static sendEmail = async (toEmail, subject, content) => {
+    if(Config.SMPT_CONFIG?.auth?.user && Config.SMPT_CONFIG.auth.user.length > 0) {
+      const transporter = nodemailer.createTransport(Config.SMPT_CONFIG);
+      await transporter.sendMail({
+        from: Config.SMPT_CONFIG.auth.user,
+        to: toEmail,
+        subject: subject,
+        html: content,
+      });
+      return true;
+    } else {
+      appLog.info(`SMTP not found`);
+      return false;
+    }
+  };
+
 }
 
-exports.Utils = Utils;
+exports.CommonUtils = CommonUtils;
