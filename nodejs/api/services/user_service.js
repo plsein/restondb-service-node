@@ -69,7 +69,7 @@ class UserService {
    */
   static forgotPassword = async (req, res, next) => {
     const gqlQuery = Const.EMAIL_EXISTS_GQL_QUERY;
-    const response = await GraphOps.graphqlMutate(gqlQuery, {email: req.body.email});
+    const response = await GraphOps.graphqlQuery(gqlQuery, {email: req.body.email});
     if (response.data.userProfiles.nodes.length == 0) {
       return CommonUtils.sendResponse(res, {data: [], code: 400, msg: "User does not Exists"});
     }
